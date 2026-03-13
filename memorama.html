@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Memorama 3D - VR</title>
+ 
+<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+ 
+<style>
+body{
+margin:0;
+font-family:'Segoe UI',sans-serif;
+background:#000;
+overflow:hidden;
+}
+ 
+.ui{
+position:absolute;
+top:20px;
+width:100%;
+z-index:100;
+text-align:center;
+pointer-events:none;
+color:white;
+}
+ 
+.stats{
+background:rgba(144,100,255,.3);
+padding:10px 20px;
+border-radius:30px;
+border:1px solid #bc93fd;
+}
+ 
+#victory{
+position:fixed;
+inset:0;
+background:rgba(0,0,0,.9);
+display:none;
+align-items:center;
+justify-content:center;
+flex-direction:column;
+z-index:200;
+color:white;
+}
+ 
+button{
+pointer-events:auto;
+padding:10px 20px;
+background:#bc93fd;
+border:none;
+color:white;
+font-weight:bold;
+border-radius:5px;
+cursor:pointer;
+}
+</style>
+</head>
+ 
+<body>
+ 
+<div class="ui">
+<div class="stats">
+Pares: <span id="pairs">0</span>/8 |
+Movimientos: <span id="moves">0</span>
+</div>
+</div>
+ 
+<div id="victory">
+<h1>¡MEMORIA DE ELEFANTE! 🐘</h1>
+<button onclick="location.reload()">Jugar de Nuevo</button>
+</div>
+ 
+<a-scene>
+ 
+<a-assets timeout="10000">
+ 
+<img id="img1" crossorigin="anonymous" src="https://picsum.photos/300?1">
+<img id="img2" crossorigin="anonymous" src="https://picsum.photos/300?2">
+<img id="img3" crossorigin="anonymous" src="https://picsum.photos/300?3">
+<img id="img4" crossorigin="anonymous" src="https://picsum.photos/300?4">
+<img id="img5" crossorigin="anonymous" src="https://picsum.photos/300?5">
+<img id="img6" crossorigin="anonymous" src="https://picsum.photos/300?6">
+<img id="img7" crossorigin="anonymous" src="https://picsum.photos/300?7">
+<img id="img8" crossorigin="anonymous" src="https://picsum.photos/300?8">
+ 
+</a-assets>
+ 
+<!-- CAMARA VR -->
+<a-entity id="rig" position="0 1.6 3"
+animation="property: position; to: 0 1.6 2; dur: 2000; easing: easeOutQuad">
+ 
+<a-camera
+wasd-controls="acceleration:15"
+look-controls
+raycaster="objects: .clickable">
+ 
+<a-cursor
+geometry="primitive:ring;radiusInner:0.02;radiusOuter:0.035"
+material="color:#bc93fd;shader:flat"
+position="0 0 -1"
+fuse="true"
+fuse-timeout="800"
+animation__fusing="property: scale; startEvents: fusing; dur: 800; from: 1 1 1; to: 0.7 0.7 0.7"
+animation__reset="property: scale; startEvents: mouseleave; dur: 200; to: 1 1 1">
+</a-cursor>
+ 
+</a-camera>
+</a-entity>
+ 
+<a-sky color="#111"></a-sky>
+ 
+<a-light type="ambient" intensity="0.7"></a-light>
+<a-light type="point" intensity="1" position="2 4 4"></a-light>
+ 
+<a-entity id="board" position="0 1.5 -4"></a-entity>
+ 
+</a-scene>
+ 
+<script>
+ 
+const board=document.getElementById("board")
+ 
+const icons=[
+"#img1","#img2","#img3","#img4",
+"#img5","#img6","#img7","#img8"
+]
+ 
+let cards=[...icons,...icons]
+ 
+let first=null
+let second=null
+let lock=false
+ 
+let pairs=0
+let moves=0
+ 
+function createBoard(){
+ 
+board.innerHTML=""
+ 
+let shuffled=cards.sort(()=>Math.random()-0.5)
+ 
+shuffled.forEach((img,i)=>{
+ 
+let x=(i%4)*1.4-2.1
+let y=Math.floor(i/4)*1.4-1
+ 
+let cardWrap=document.createElement("a-entity")
+cardWrap.classList.add("clickable")
+cardWrap.setAttribute("position",`${x} ${y} 0`)
+cardWrap.dataset.icon=img
+ 
+let front=document.createElement("a-box")
+front.setAttribute("scale","1.2 1.2 0.1")
+front.setAttribute("color","#2c2c2c")
+ 
+let back=document.createElement("a-plane")
+back.setAttribute("width","1.2")
+back.setAttribute("height","1.2")
+back.setAttribute("position","0 0 -0.06")
+back.setAttribute("rotation","0 180 0")
+back.setAttribute("src",img)
+ 
+cardWrap.appendChild(front)
+cardWrap.appendChild(back)
+ 
+cardWrap.addEventListener("click",()=>flip(cardWrap))
+ 
+board.appendChild(cardWrap)
+ 
+})
+ 
+}
+ 
+function flip(card){
+ 
+if(lock||card.dataset.matched||card===first)return
+ 
+card.setAttribute("animation",
+"property:rotation;to:0 180 0;dur:400")
+ 
+if(!first){
+first=card
+return
+}
+ 
+second=card
+moves++
+document.getElementById("moves").innerText=moves
+ 
+check()
+ 
+}
+ 
+function check(){
+ 
+lock=true
+ 
+if(first.dataset.icon===second.dataset.icon){
+ 
+first.dataset.matched=true
+second.dataset.matched=true
+ 
+pairs++
+document.getElementById("pairs").innerText=pairs
+ 
+if(pairs===8){
+document.getElementById("victory").style.display="flex"
+}
+ 
+resetTurn()
+ 
+}else{
+ 
+setTimeout(()=>{
+ 
+first.setAttribute("animation",
+"property:rotation;to:0 0 0;dur:400")
+ 
+second.setAttribute("animation",
+"property:rotation;to:0 0 0;dur:400")
+ 
+resetTurn()
+ 
+},1000)
+ 
+}
+ 
+}
+ 
+function resetTurn(){
+[first,second,lock]=[null,null,false]
+}
+ 
+createBoard()
+ 
+</script>
+ 
+</body>
+</html>
